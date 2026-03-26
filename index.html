@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Downloader ULTRA PRO</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial;
+  background: linear-gradient(135deg, #020617, #0f172a);
+  color: white;
+  text-align: center;
+}
+
+#main {
+  padding: 20px;
+}
+
+.card {
+  background: #1e293b;
+  padding: 20px;
+  border-radius: 20px;
+}
+
+input {
+  width: 90%;
+  padding: 12px;
+  border-radius: 12px;
+  border: none;
+}
+
+button {
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  border: none;
+  background: #22c55e;
+}
+
+video, img {
+  max-width: 100%;
+  margin-top: 15px;
+  border-radius: 12px;
+}
+</style>
+
+</head>
+<body>
+
+<div id="main">
+  <div class="card">
+    <h2>🚀 Downloader ULTRA PRO</h2>
+
+    <input type="text" id="url" placeholder="Masukkan link...">
+    <br>
+    <button onclick="download()">Download</button>
+
+    <div id="status"></div>
+    <div id="preview"></div>
+  </div>
+</div>
+
+<script>
+
+// NOTIF PERMISSION
+if (Notification.permission !== "granted") {
+  Notification.requestPermission();
+}
+
+// NOTIF FUNCTION
+function notify(text) {
+  if (Notification.permission === "granted") {
+    new Notification(text);
+  }
+}
+
+// DOWNLOAD KE STORAGE (pakai blob)
+async function saveFile(url, filename) {
+  let res = await fetch(url);
+  let blob = await res.blob();
+
+  let a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+
+  notify("✅ Download selesai: " + filename);
+}
+
+async function download() {
+  let url = document.getElementById("url").value;
+  let preview = document.getElementById("preview");
+  let status = document.getElementById("status");
+
+  preview.innerHTML = "";
+  status.innerHTML = "⏳ Loading...";
+
+  try {
+    let api;
+
+    if (url.includes("tiktok")) {
+      api = "https://api.tiklydown.eu.org/api/download?url=" + encodeURIComponent(url);
+    } else if (url.includes("instagram")) {
+      api = "https://api.vreden.my.id/api/igdl?url=" + encodeURIComponent(url);
+    } else {
+      status.innerHTML = "❌ Link tidak didukung";
+      return;
+    }
+
+    let res = await fetch(api);
+    let data = await res.json();
+
+    // TIKTOK
+    if (url.includes("tiktok") && data.video) {
+      let video = data.video.noWatermark;
+      let audio = data.music;
+
+      preview.innerHTML = `<video controls src="${video}"></video>`;
+
+      status.innerHTML = `
+        <button onclick="saveFile('${video}','tiktok.mp4')">⬇️ Video</button>
+        <button onclick="saveFile('${audio}','tiktok.mp3')">🎵 MP3</button>
+      `;
+    }
+
+    // INSTAGRAM
+    else if (url.includes("instagram") && data.result) {
+      status.innerHTML = "⬇️ Download otomatis...";
+
+      data.result.forEach((item, i) => {
+        let name = "ig_" + i;
+
+        if (item.url.includes(".mp4")) {
+          preview.innerHTML += `<video controls src="${item.url}"></video>`;
+          saveFile(item.url, name + ".mp4");
+        } else {
+          preview.innerHTML += `<img src="${item.url}">`;
+          saveFile(item.url, name + ".jpg");
+        }
+      });
+    }
+
+  } catch {
+    status.innerHTML = "❌ Error!";
+  }
+}
+</script>
+
+</body>
+</html>
